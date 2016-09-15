@@ -1,6 +1,7 @@
 package com.wanghaisheng.view.floatwindow;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -15,20 +16,27 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ProgressBar;
 
+import com.wanghaisheng.floatwindow.R;
 import com.wanghaisheng.floatwindow.util.DesityUtils;
 import com.wanghaisheng.floatwindow.util.ToastUtil;
 
 /**
- * Author: sheng on 2016/9/14 22:17
+ * Author: sheng on 2016/9/15 22:59
  * Email: 1392100700@qq.com
  */
-public class FloatProgressView extends ProgressBar {
+public class WaterProgressView extends ProgressBar {
+
+    //默认圆的背景色
+    public static final int DEFAULT_CIRCLE_COLOR = 0xff00cccc;
+    //默认进度的颜色
+    public static final int DEFAULT_PROGRESS_COLOR = 0xff00CC66;
+    //默认文字的颜色
+    public static final int DEFAULT_TEXT_COLOR = 0xffffffff;
+    //默认文字的大小
+    public static final int DEFAULT_TEXT_SIZE = 18;
+    public static final int DEFAULT_RIPPLE_TOPHEIGHT = 10;
 
     private Context mContext;
-
-    //宽和高
-    private int mWidth = 160;
-    private int mHeight = 160;
 
     private Canvas mPaintCanvas;
     private Bitmap mBitmap;
@@ -36,26 +44,26 @@ public class FloatProgressView extends ProgressBar {
     //画圆的画笔
     private Paint mCirclePaint;
     //画圆的画笔的颜色
-    private int mCirclePaintColor = 0xff00CCCC;
+    private int mCircleColor = 0xff00CCCC;
 
     //画进度的画笔
     private Paint mProgressPaint;
     //画进度的画笔的颜色
-    private int mProgressPaintColor = 0xff00CC66;
+    private int mProgressColor = 0xff00CC66;
     //画进度的path
     private Path mProgressPath;
-    private int mShapeTop = 10;
+    private int mRippleTop = 10;
 
     //进度文字的画笔
     private Paint mTextPaint;
     //进度文字的颜色
-    private int mTextPaintColor = 0xffffffff;
+    private int mTextColor = 0xffffffff;
     private int mTextSize = 18;
     //当前进度
     private volatile int mCurrentProgress = 0;
     //最大进度
     private int mMaxProgress = 100;
-    //目标，也就是双击时处理任务的进度，会影响曲线的振幅
+    //目标进度，也就是双击时处理任务的进度，会影响曲线的振幅
     private int mTargetProgress = 50;
 
     private GestureDetector mGestureDetector;
@@ -64,31 +72,24 @@ public class FloatProgressView extends ProgressBar {
     //单击动画进行的次数，默认为50
     private int mSingleTapAnimationCount = 50;
 
-    public FloatProgressView(Context context) {
+    public WaterProgressView(Context context) {
         this(context,null);
     }
 
-    public FloatProgressView(Context context, AttributeSet attrs) {
+    public WaterProgressView(Context context, AttributeSet attrs) {
         this(context, attrs,0);
     }
 
-    public FloatProgressView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public WaterProgressView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
         this.mContext = context;
 
-        mWidth = DesityUtils.dp2px(context,mWidth);
-        mHeight = DesityUtils.dp2px(context,mHeight);
-        mTextSize = DesityUtils.sp2px(context,mTextSize);
-        mShapeTop = DesityUtils.dp2px(context,mShapeTop);
+        getAttrValue(attrs);
 
         //初始化画笔的相关属性
         initPaint();
         mProgressPath = new Path();
-        mBitmap = Bitmap.createBitmap(mWidth,mHeight, Bitmap.Config.ARGB_8888);
-        mPaintCanvas = new Canvas(mBitmap);
-
-        setProgress(mCurrentProgress);
-        setMax(mMaxProgress);
 
         mGestureDetector = new GestureDetector(context,new MyGestureDetector());
         setOnTouchListener(new OnTouchListener() {
@@ -104,12 +105,27 @@ public class FloatProgressView extends ProgressBar {
     }
 
     /**
+     * 获取自定义属性的值
+     * @param attrs
+     */
+    private void getAttrValue(AttributeSet attrs) {
+        TypedArray ta = mContext.obtainStyledAttributes(attrs, R.styleable.WaterProgressView);
+
+        mCircleColor = ta.getColor(R.styleable.WaterProgressView_circle_color,DEFAULT_CIRCLE_COLOR);
+        mProgressColor = ta.getColor(R.styleable.WaterProgressView_progress_color,DEFAULT_PROGRESS_COLOR);
+        mTextColor = ta.getColor(R.styleable.WaterProgressView_text_color,DEFAULT_TEXT_COLOR);
+        mTextSize = (int) ta.getDimension(R.styleable.WaterProgressView_text_size, DesityUtils.sp2px(mContext,DEFAULT_TEXT_SIZE));
+        mRippleTop = (int) ta.getDimension(R.styleable.WaterProgressView_ripple_topheight,DesityUtils.dp2px(mContext,DEFAULT_RIPPLE_TOPHEIGHT));
+
+        ta.recycle();
+    }
+
+    /**
      * 监听单击双击事件
      */
     private class MyGestureDetector extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onDoubleTap(MotionEvent e) {
-//            Toast.makeText(getContext(),"双击了",Toast.LENGTH_SHORT).show();
             ToastUtil.showToast(mContext,"双击");
             //双击动画
             startDoubleTapAnimation();
@@ -118,7 +134,6 @@ public class FloatProgressView extends ProgressBar {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-//            Toast.makeText(getContext(),"单击了",Toast.LENGTH_SHORT).show();
             ToastUtil.showToast(mContext,"单击");
             //单击动画
             startSingleTapAnimation();
@@ -190,20 +205,20 @@ public class FloatProgressView extends ProgressBar {
      */
     private void initPaint() {
         mCirclePaint = new Paint();
-        mCirclePaint.setColor(mCirclePaintColor);
+        mCirclePaint.setColor(mCircleColor);
         mCirclePaint.setStyle(Paint.Style.FILL);
         mCirclePaint.setAntiAlias(true);
         mCirclePaint.setDither(true);
 
         mProgressPaint = new Paint();
-        mProgressPaint.setColor(mProgressPaintColor);
+        mProgressPaint.setColor(mProgressColor);
         mProgressPaint.setAntiAlias(true);
         mProgressPaint.setDither(true);
         mProgressPaint.setStyle(Paint.Style.FILL);
         mProgressPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
 
         mTextPaint = new Paint();
-        mTextPaint.setColor(mTextPaintColor);
+        mTextPaint.setColor(mTextColor);
         mTextPaint.setStyle(Paint.Style.FILL);
         mTextPaint.setAntiAlias(true);
         mTextPaint.setDither(true);
@@ -212,33 +227,42 @@ public class FloatProgressView extends ProgressBar {
 
     @Override
     protected synchronized void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(mWidth,mHeight);
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+
+        setMeasuredDimension(width,height);
+
+        mBitmap = Bitmap.createBitmap(width-getPaddingLeft()-getPaddingRight(),height-getPaddingTop()-getPaddingBottom(), Bitmap.Config.ARGB_8888);
+        mPaintCanvas = new Canvas(mBitmap);
+
     }
 
     @Override
     protected synchronized void onDraw(Canvas canvas) {
         float ratio = getProgress()*1.0f/getMax();
 
+        int width = getWidth()-getPaddingLeft()-getPaddingRight();
+        int height = getHeight()-getPaddingTop()-getPaddingBottom();
+
         //画圆
-        mPaintCanvas.drawCircle(mWidth/2,mHeight/2,mHeight/2,mCirclePaint);
+        mPaintCanvas.drawCircle(width/2,height/2,height/2,mCirclePaint);
 
         //画进度
         mProgressPath.reset();
         //从右上边开始draw path
-        int rightTop = (int) ((1-ratio)*mHeight);
-        mProgressPath.moveTo(mWidth,rightTop);
-        mProgressPath.lineTo(mWidth,mHeight);
-        mProgressPath.lineTo(0,mHeight);
+        int rightTop = (int) ((1-ratio)*height);
+        mProgressPath.moveTo(width,rightTop);
+        mProgressPath.lineTo(width,height);
+        mProgressPath.lineTo(0,height);
         mProgressPath.lineTo(0,rightTop);
         //画贝塞尔曲线，形成波浪线
-        int count = (int) Math.ceil(mHeight*1.0f/(mShapeTop*4));
+        int count = (int) Math.ceil(height*1.0f/(mRippleTop *4));
         //不是单击animation状态
         if(!isSingleTapAnimation&&getProgress()>0) {
-//            float top = (0.5f-ratio)*mShapeTop*2;
-            float top = (mTargetProgress-getProgress())*1.0f/mTargetProgress*mShapeTop;
+            float top = (mTargetProgress-getProgress())*1.0f/mTargetProgress* mRippleTop;
             for(int i=0; i<count; i++) {
-                mProgressPath.rQuadTo(mShapeTop,-top,2*mShapeTop,0);
-                mProgressPath.rQuadTo(mShapeTop,top,2*mShapeTop,0);
+                mProgressPath.rQuadTo(mRippleTop,-top,2* mRippleTop,0);
+                mProgressPath.rQuadTo(mRippleTop,top,2* mRippleTop,0);
             }
         } else {
             //单击animation状态
@@ -246,13 +270,13 @@ public class FloatProgressView extends ProgressBar {
             //奇偶数时曲线切换
             if(mSingleTapAnimationCount%2==0) {
                 for(int i=0; i<count; i++) {
-                    mProgressPath.rQuadTo(mShapeTop*2,-top,2*mShapeTop,0);
-                    mProgressPath.rQuadTo(mShapeTop*2,top,2*mShapeTop,0);
+                    mProgressPath.rQuadTo(mRippleTop *2,-top*2,2* mRippleTop,0);
+                    mProgressPath.rQuadTo(mRippleTop *2,top*2,2* mRippleTop,0);
                 }
             } else {
                 for(int i=0; i<count; i++) {
-                    mProgressPath.rQuadTo(mShapeTop*2,top,2*mShapeTop,0);
-                    mProgressPath.rQuadTo(mShapeTop*2,-top,2*mShapeTop,0);
+                    mProgressPath.rQuadTo(mRippleTop *2,top*2,2* mRippleTop,0);
+                    mProgressPath.rQuadTo(mRippleTop *2,-top*2,2* mRippleTop,0);
                 }
             }
 
@@ -266,8 +290,8 @@ public class FloatProgressView extends ProgressBar {
         float textWidth = mTextPaint.measureText(text);
         Paint.FontMetrics metrics = mTextPaint.getFontMetrics();
         //descent+ascent为负数，所以是减而不是加
-        float baseLine = mHeight*1.0f/2 - (metrics.descent+metrics.ascent)/2;
-        mPaintCanvas.drawText(text,mWidth/2-textWidth/2,baseLine,mTextPaint);
+        float baseLine = height*1.0f/2 - (metrics.descent+metrics.ascent)/2;
+        mPaintCanvas.drawText(text,width/2-textWidth/2,baseLine,mTextPaint);
 
         canvas.drawBitmap(mBitmap,0,0,null);
     }

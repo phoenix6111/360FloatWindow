@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="WaterProgressView">
+        <attr name="circle_color" format="color"/><!--圆的颜色-->
+        <attr name="progress_color" format="color"/><!--进度的颜色-->
+        <attr name="text_color" format="color"/><!--文字的颜色-->
+        <attr name="text_size" format="dimension"/><!--文字大小-->
+        <attr name="ripple_topheight" format="dimension"/><!--水页涟漪最大高度-->
+    </declare-styleable>
+</resources>
